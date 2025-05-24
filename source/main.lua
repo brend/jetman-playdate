@@ -3,88 +3,99 @@ import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
--- Declaring this "gfx" shorthand will make your life easier. Instead of having
--- to preface all graphics calls with "playdate.graphics", just use "gfx."
--- Performance will be slightly enhanced, too.
--- NOTE: Because it's local, you'll have to do it in every .lua source file.
-
 local gfx <const> = playdate.graphics
 
--- Here's our player sprite declaration. We'll scope it to this file because
--- several functions need to access it.
+local particles <const> = {}
+local jetpod <const> = { x = 200, y = 120, heading = 0, isThrusting = false, velocity = 0, acceleration = 0 }
 
-local playerSprite = nil
+---------------------------------------------
+---------- Updating the Game State ----------
+---------------------------------------------
 
--- A function to set up our game environment.
-
-local function myGameSetUp()
-    -- Set up the player sprite.
-
-    local playerImage = gfx.image.new("images/playerImage")
-    assert(playerImage)   -- make sure the image was where we thought
-
-    playerSprite = gfx.sprite.new(playerImage)
-    playerSprite:moveTo(200, 120)   -- this is where the center of the sprite is placed; (200,120) is the center of the Playdate screen
-    playerSprite:add()              -- This is critical!
-
-    -- We want an environment displayed behind our sprite.
-    -- There are generally two ways to do this:
-    -- 1) Use setBackgroundDrawingCallback() to draw a background image. (This is what we're doing below.)
-    -- 2) Use a tilemap, assign it to a sprite with sprite:setTilemap(tilemap),
-    --       and call :setZIndex() with some low number so the background stays behind
-    --       your other sprites.
-
-    local backgroundImage = gfx.image.new("images/background")
-    assert(backgroundImage)
-
-    gfx.sprite.setBackgroundDrawingCallback(
-        function(x, y, width, height)
-            -- x,y,width,height is the updated area in sprite-local coordinates
-            -- The clip rect is already set to this area, so we don't need to set it ourselves
-            backgroundImage:draw(0, 0)
+local function updateParticles()
+    for i = #particles, 1, -1 do
+        local particle = particles[i]
+        particle.y = particle.y + 1    -- Move the particle down
+        if particle.y > 240 then
+            table.remove(particles, i) -- Remove the particle if it goes off-screen
         end
-    )
+    end
 end
 
--- Now we'll call the function above to configure our game.
--- After this runs (it just runs once), nearly everything will be
--- controlled by the OS calling `playdate.update()` 30 times a second.
+local function makeParticle(x, y)
+    local particle = {
+        x = x,
+        y = y
+    }
+    particles[#particles + 1] = particle
+end
 
-myGameSetUp()
+local function updateJetpod()
+    if jetpod.isThrusting then
+        jetpod.acceleration = 0.1
 
--- `playdate.update()` is the heart of every Playdate game.
--- This function is called right before every frame is drawn onscreen.
--- Use this function to poll input, run game logic, and move sprites.
-
-function playdate.update()
-    -- Poll the d-pad and move our player accordingly.
-    -- (There are multiple ways to read the d-pad; this is the simplest.)
-    -- Note that it is possible for more than one of these directions
-    -- to be pressed at once, if the user is pressing diagonally.
-
-    if not playerSprite then
-        -- If the player sprite doesn't exist, we can't move it.
-        -- This can happen if the game is restarted, for example.
-        return
+        -- Create particles at the jetpod's position
+        makeParticle(jetpod.x, jetpod.y)
     end
 
-    if playdate.buttonIsPressed(playdate.kButtonUp) then
-        playerSprite:moveBy(0, -2)
+    -- Move the jetpod based on its heading
+    local angle = jetpod.heading
+    jetpod.velocity = jetpod.velocity + jetpod.acceleration
+    jetpod.x = jetpod.x + math.cos(angle) * jetpod.velocity
+    jetpod.y = jetpod.y + math.sin(angle) * jetpod.velocity
+    jetpod.acceleration = 0 -- Reset acceleration after applying it
+
+    -- Keep the jetpod within screen bounds
+    if jetpod.x < 0 then jetpod.x = 0 end
+    if jetpod.x > 400 then jetpod.x = 400 end
+    if jetpod.y < 0 then jetpod.y = 0 end
+    if jetpod.y > 240 then jetpod.y = 240 end
+end
+
+---------------------------------------------
+----------------- Drawing -------------------
+---------------------------------------------
+
+local function drawParticles()
+    gfx.setColor(gfx.kColorWhite)
+    for _, particle in ipairs(particles) do
+        gfx.fillCircleAtPoint(particle.x, particle.y, 2)
     end
-    if playdate.buttonIsPressed(playdate.kButtonRight) then
-        playerSprite:moveBy(2, 0)
-    end
+end
+
+local function drawJetpod()
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(jetpod.x - 10, jetpod.y - 10, 20, 20)
+end
+
+---------------------------------------------
+------------- Handling Input ----------------
+---------------------------------------------
+
+local function handleInput()
+    jetpod.isThrusting = playdate.buttonIsPressed(playdate.kButtonUp)
+
     if playdate.buttonIsPressed(playdate.kButtonDown) then
-        playerSprite:moveBy(0, 2)
+        -- TODO
     end
     if playdate.buttonIsPressed(playdate.kButtonLeft) then
-        playerSprite:moveBy(-2, 0)
+        jetpod.heading = jetpod.heading - 0.1
     end
+    if playdate.buttonIsPressed(playdate.kButtonRight) then
+        jetpod.heading = jetpod.heading + 0.1
+    end
+end
 
-    -- Call the functions below in playdate.update() to draw sprites and keep
-    -- timers updated. (We aren't using timers in this example, but in most
-    -- average-complexity games, you will.)
-
+function playdate.update()
+    gfx.clear(gfx.kColorBlack)
     gfx.sprite.update()
     playdate.timer.updateTimers()
+
+    handleInput()
+
+    updateParticles()
+    updateJetpod()
+
+    drawParticles()
+    drawJetpod()
 end
