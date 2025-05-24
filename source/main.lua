@@ -10,8 +10,8 @@ import "math"
 ---------------------------------------------
 local PI <const> = math.pi
 local PI_3 <const> = PI / 3
-
 local MAX_VELOCITY <const> = 3.0
+local GRAVITY <const> = 0.05
 
 local gfx <const> = playdate.graphics
 
@@ -52,7 +52,7 @@ end
 
 local function updateJetpod()
     -- Compute acceleration based on thrust and heading
-    local acceleration = vector()
+    local acceleration = vector(0, GRAVITY) -- Gravity always acts downwards
     local angle = jetpod.heading
 
     if jetpod.isThrusting then
