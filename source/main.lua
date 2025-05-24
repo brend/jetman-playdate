@@ -3,9 +3,15 @@ import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
-local gfx <const> = playdate.graphics
+---------------------------------------------
+------------- Global Variables --------------
+---------------------------------------------
 local PI <const> = math.pi
 local PI_3 <const> = PI / 3
+
+local MAX_VELOCITY <const> = 3.0
+
+local gfx <const> = playdate.graphics
 
 local particles <const> = {}
 local jetpod <const> = {
@@ -22,22 +28,43 @@ local jetpod <const> = {
 local function updateParticles()
     for i = #particles, 1, -1 do
         local particle = particles[i]
-        particle.y = particle.y + 1    -- Move the particle down
-        if particle.y > 240 then
-            table.remove(particles, i) -- Remove the particle if it goes off-screen
+        particle.x = particle.x + particle.vx
+        particle.y = particle.y + particle.vy
+        particle.lifetime = particle.lifetime - 1
+
+        -- Remove the particle if its lifetime is over
+        if particle.lifetime <= 0 then
+            table.remove(particles, i)
+        end
+    end
+    -- Remove particles that are out of bounds
+    for i = #particles, 1, -1 do
+        local particle = particles[i]
+        if particle.x < 0 or particle.x > 400 or particle.y < 0 or particle.y > 240 then
+            table.remove(particles, i)
+        end
+    end
+    -- Limit the number of particles
+    if #particles > 100 then
+        for i = #particles, 101, -1 do
+            table.remove(particles, i)
         end
     end
 end
 
-local function makeParticle(x, y)
+local function makeParticle(x, y, vx, vy)
     local particle = {
         x = x,
-        y = y
+        y = y,
+        vx = vx or 0,
+        vy = vy or 0,
+        lifetime = 20 + math.random(7), -- Lifetime in frames
     }
     particles[#particles + 1] = particle
 end
 
 local function updateJetpod()
+    -- Compute acceleration based on thrust and heading
     local acceleration = { x = 0, y = 0 }
     local angle = jetpod.heading
 
@@ -46,9 +73,12 @@ local function updateJetpod()
         acceleration.y = math.sin(angle) * 0.1
     end
 
-    -- Move the jetpod based on its heading
+    -- Move the jetpod based on its acceleration and velocity
     jetpod.velocity.x = jetpod.velocity.x + acceleration.x
     jetpod.velocity.y = jetpod.velocity.y + acceleration.y
+
+    jetpod.velocity.x = math.max(-MAX_VELOCITY, math.min(MAX_VELOCITY, jetpod.velocity.x))
+    jetpod.velocity.y = math.max(-MAX_VELOCITY, math.min(MAX_VELOCITY, jetpod.velocity.y))
 
     jetpod.position.x = jetpod.position.x + jetpod.velocity.x
     jetpod.position.y = jetpod.position.y + jetpod.velocity.y
@@ -58,6 +88,17 @@ local function updateJetpod()
     if jetpod.position.x > 400 then jetpod.position.x = 400 end
     if jetpod.position.y < 0 then jetpod.position.y = 0 end
     if jetpod.position.y > 240 then jetpod.position.y = 240 end
+
+    -- Create particles for thrust
+    if jetpod.isThrusting then
+        local particleCount = 1
+        for i = 1, particleCount do
+            local angleOffset = PI_3 - math.random() * 2 * PI_3 -- Random angle offset for variation
+            local vx = -math.cos(jetpod.heading + angleOffset) * 2
+            local vy = -math.sin(jetpod.heading + angleOffset) * 2
+            makeParticle(jetpod.position.x, jetpod.position.y, vx, vy)
+        end
+    end
 end
 
 ---------------------------------------------
