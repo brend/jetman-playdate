@@ -4,9 +4,16 @@ import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
 local gfx <const> = playdate.graphics
+local PI <const> = math.pi
+local PI_3 <const> = PI / 3
 
 local particles <const> = {}
-local jetpod <const> = { x = 200, y = 120, heading = 0, isThrusting = false, velocity = 0, acceleration = 0 }
+local jetpod <const> = {
+    position = { x = 200, y = 120 },
+    velocity = { x = 0, y = 0 },
+    heading = 0,
+    isThrusting = false,
+}
 
 ---------------------------------------------
 ---------- Updating the Game State ----------
@@ -31,25 +38,26 @@ local function makeParticle(x, y)
 end
 
 local function updateJetpod()
-    if jetpod.isThrusting then
-        jetpod.acceleration = 0.1
+    local acceleration = { x = 0, y = 0 }
+    local angle = jetpod.heading
 
-        -- Create particles at the jetpod's position
-        makeParticle(jetpod.x, jetpod.y)
+    if jetpod.isThrusting then
+        acceleration.x = math.cos(angle) * 0.1
+        acceleration.y = math.sin(angle) * 0.1
     end
 
     -- Move the jetpod based on its heading
-    local angle = jetpod.heading
-    jetpod.velocity = jetpod.velocity + jetpod.acceleration
-    jetpod.x = jetpod.x + math.cos(angle) * jetpod.velocity
-    jetpod.y = jetpod.y + math.sin(angle) * jetpod.velocity
-    jetpod.acceleration = 0 -- Reset acceleration after applying it
+    jetpod.velocity.x = jetpod.velocity.x + acceleration.x
+    jetpod.velocity.y = jetpod.velocity.y + acceleration.y
+
+    jetpod.position.x = jetpod.position.x + jetpod.velocity.x
+    jetpod.position.y = jetpod.position.y + jetpod.velocity.y
 
     -- Keep the jetpod within screen bounds
-    if jetpod.x < 0 then jetpod.x = 0 end
-    if jetpod.x > 400 then jetpod.x = 400 end
-    if jetpod.y < 0 then jetpod.y = 0 end
-    if jetpod.y > 240 then jetpod.y = 240 end
+    if jetpod.position.x < 0 then jetpod.position.x = 0 end
+    if jetpod.position.x > 400 then jetpod.position.x = 400 end
+    if jetpod.position.y < 0 then jetpod.position.y = 0 end
+    if jetpod.position.y > 240 then jetpod.position.y = 240 end
 end
 
 ---------------------------------------------
@@ -65,7 +73,18 @@ end
 
 local function drawJetpod()
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(jetpod.x - 10, jetpod.y - 10, 20, 20)
+    -- Draw the jetpod as a simple triangle
+    local size = 10
+    local angle = jetpod.heading
+    local x = jetpod.position.x
+    local y = jetpod.position.y
+    local x1 = x + size * math.cos(angle)
+    local y1 = y + size * math.sin(angle)
+    local x2 = x + size * math.cos(angle + PI * 2 / 3)
+    local y2 = y + size * math.sin(angle + PI * 2 / 3)
+    local x3 = x + size * math.cos(angle - PI * 2 / 3)
+    local y3 = y + size * math.sin(angle - PI * 2 / 3)
+    gfx.fillTriangle(x1, y1, x2, y2, x3, y3)
 end
 
 ---------------------------------------------
