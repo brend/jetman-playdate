@@ -8,14 +8,19 @@ import "math"
 ---------------------------------------------
 ------------- Global Variables --------------
 ---------------------------------------------
+--- The mathematical constant Pi
 local PI <const> = math.pi
+--- Pi divided by 3
 local PI_3 <const> = PI / 3
+--- Maximum velocity for the jetpod
 local MAX_VELOCITY <const> = 3.0
+--- Gravity constant
 local GRAVITY <const> = 0.05
-
+--- Graphics library for drawing
 local gfx <const> = playdate.graphics
-
+--- Particles table to hold all particle objects
 local particles <const> = {}
+--- Jetpod object representing the player's ship
 local jetpod <const> = {
     position = vector(200, 120), -- Starting position in the center of the screen
     velocity = vector(),
@@ -27,6 +32,7 @@ local jetpod <const> = {
 ---------- Updating the Game State ----------
 ---------------------------------------------
 
+--- Updates the particles by moving them and removing those that have expired.
 local function updateParticles()
     for i = #particles, 1, -1 do
         local particle = particles[i]
@@ -41,6 +47,12 @@ local function updateParticles()
     end
 end
 
+--- Creates a new particle at the specified position with an optional velocity
+--- and adds it to the particles table.
+--- @param x number The x-coordinate of the particle's position
+--- @param y number The y-coordinate of the particle's position
+--- @param vx number (optional) The x-component of the particle's velocity
+--- @param vy number (optional) The y-component of the particle's velocity
 local function makeParticle(x, y, vx, vy)
     local particle = {
         position = vector(x, y),
@@ -50,6 +62,7 @@ local function makeParticle(x, y, vx, vy)
     particles[#particles + 1] = particle
 end
 
+--- Updates the jetpod's position and velocity based on its thrust and heading.
 local function updateJetpod()
     -- Compute acceleration based on thrust and heading
     local acceleration = vector(0, GRAVITY) -- Gravity always acts downwards
@@ -88,6 +101,7 @@ end
 ----------------- Drawing -------------------
 ---------------------------------------------
 
+--- Draws all particles on the screen.
 local function drawParticles()
     gfx.setColor(gfx.kColorWhite)
     for _, particle in ipairs(particles) do
@@ -95,6 +109,7 @@ local function drawParticles()
     end
 end
 
+--- Draws the jetpod on the screen as a triangle pointing in its heading direction.
 local function drawJetpod()
     gfx.setColor(gfx.kColorWhite)
     -- Draw the jetpod as a simple triangle
@@ -115,6 +130,7 @@ end
 ------------- Handling Input ----------------
 ---------------------------------------------
 
+--- Handles user input for controlling the game.
 local function handleInput()
     jetpod.isThrusting = playdate.buttonIsPressed(playdate.kButtonUp)
 
@@ -129,6 +145,12 @@ local function handleInput()
     end
 end
 
+---------------------------------------------
+----------------- System --------------------
+---------------------------------------------
+
+
+--- Main update function called every frame.
 function playdate.update()
     gfx.clear(gfx.kColorBlack)
     gfx.sprite.update()
