@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run in Playdate Simulator",
+      "type": "lldb",
+      "request": "launch",
+      "preLaunchTask": "Run in Simulator",
+      "program": "${userHome}/Developer/PlaydateSDK/bin/Playdate Simulator.app",
+      "args": ["game.pdx"],
+      "cwd": "${workspaceFolder}",
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "Lua.runtime.version": "Lua 5.4", // or 5.1 depending on Playdate SDK
+  "Lua.diagnostics.globals": ["import", "playdate"], // Suppress warnings about `import` being undefined
+  "Lua.workspace.library": [
+    "./",  // or wherever your code lives
+    "/path/to/PlaydateSDK/CoreLibs" // update this path
+  ],
+  "Lua.workspace.checkThirdParty": false
+}
