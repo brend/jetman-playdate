@@ -11,15 +11,6 @@
       ],
       "group": "build",
       "problemMatcher": []
-    },
-    {
-      "label": "Run in Simulator",
-      "type": "shell",
-      "command": "open", // use "start" on Windows
-      "args": ["-a", "Playdate Simulator", "game.pdx"],
-      "dependsOn": ["Build Playdate Game"],
-      "group": "test",
-      "problemMatcher": []
     }
   ]
 }
