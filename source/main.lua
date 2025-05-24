@@ -149,7 +149,6 @@ end
 ----------------- System --------------------
 ---------------------------------------------
 
-
 --- Main update function called every frame.
 function playdate.update()
     gfx.clear(gfx.kColorBlack)
