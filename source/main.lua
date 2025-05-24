@@ -3,6 +3,8 @@ import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
+import "math"
+
 ---------------------------------------------
 ------------- Global Variables --------------
 ---------------------------------------------
@@ -15,8 +17,8 @@ local gfx <const> = playdate.graphics
 
 local particles <const> = {}
 local jetpod <const> = {
-    position = { x = 200, y = 120 },
-    velocity = { x = 0, y = 0 },
+    position = vector(200, 120), -- Starting position in the center of the screen
+    velocity = vector(),
     heading = 0,
     isThrusting = false,
 }
@@ -28,36 +30,21 @@ local jetpod <const> = {
 local function updateParticles()
     for i = #particles, 1, -1 do
         local particle = particles[i]
-        particle.x = particle.x + particle.vx
-        particle.y = particle.y + particle.vy
-        particle.lifetime = particle.lifetime - 1
-
         -- Remove the particle if its lifetime is over
         if particle.lifetime <= 0 then
             table.remove(particles, i)
-        end
-    end
-    -- Remove particles that are out of bounds
-    for i = #particles, 1, -1 do
-        local particle = particles[i]
-        if particle.x < 0 or particle.x > 400 or particle.y < 0 or particle.y > 240 then
-            table.remove(particles, i)
-        end
-    end
-    -- Limit the number of particles
-    if #particles > 100 then
-        for i = #particles, 101, -1 do
-            table.remove(particles, i)
+        else
+            -- Update the particle's position based on its velocity
+            particle.position = addvector(particle.position, particle.velocity)
+            particle.lifetime = particle.lifetime - 1
         end
     end
 end
 
 local function makeParticle(x, y, vx, vy)
     local particle = {
-        x = x,
-        y = y,
-        vx = vx or 0,
-        vy = vy or 0,
+        position = vector(x, y),
+        velocity = vector(vx or 0, vy or 0),
         lifetime = 20 + math.random(7), -- Lifetime in frames
     }
     particles[#particles + 1] = particle
@@ -65,23 +52,19 @@ end
 
 local function updateJetpod()
     -- Compute acceleration based on thrust and heading
-    local acceleration = { x = 0, y = 0 }
+    local acceleration = vector()
     local angle = jetpod.heading
 
     if jetpod.isThrusting then
-        acceleration.x = math.cos(angle) * 0.1
-        acceleration.y = math.sin(angle) * 0.1
+        acceleration = vector(math.cos(angle) * 0.1, math.sin(angle) * 0.1)
     end
 
     -- Move the jetpod based on its acceleration and velocity
-    jetpod.velocity.x = jetpod.velocity.x + acceleration.x
-    jetpod.velocity.y = jetpod.velocity.y + acceleration.y
-
-    jetpod.velocity.x = math.max(-MAX_VELOCITY, math.min(MAX_VELOCITY, jetpod.velocity.x))
-    jetpod.velocity.y = math.max(-MAX_VELOCITY, math.min(MAX_VELOCITY, jetpod.velocity.y))
-
-    jetpod.position.x = jetpod.position.x + jetpod.velocity.x
-    jetpod.position.y = jetpod.position.y + jetpod.velocity.y
+    jetpod.velocity = addvector(jetpod.velocity, acceleration)
+    -- Clamp the velocity to the maximum allowed
+    jetpod.velocity = clampvector(jetpod.velocity, -MAX_VELOCITY, MAX_VELOCITY)
+    -- Update the position of the jetpod
+    jetpod.position = addvector(jetpod.position, jetpod.velocity)
 
     -- Keep the jetpod within screen bounds
     if jetpod.position.x < 0 then jetpod.position.x = 0 end
@@ -108,7 +91,7 @@ end
 local function drawParticles()
     gfx.setColor(gfx.kColorWhite)
     for _, particle in ipairs(particles) do
-        gfx.fillCircleAtPoint(particle.x, particle.y, 2)
+        gfx.fillCircleAtPoint(particle.position.x, particle.position.y, 2)
     end
 end
 

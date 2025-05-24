@@ -5,5 +5,8 @@
     "./",  // or wherever your code lives
     "/path/to/PlaydateSDK/CoreLibs" // update this path
   ],
-  "Lua.workspace.checkThirdParty": false
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.diagnostics.disable": [
+    "lowercase-global"
+  ]
 }
