@@ -6,8 +6,9 @@ import "CoreLibs/timer"
 import "math"
 
 ---------------------------------------------
-------------- Global Variables --------------
+---------------- Constants ------------------
 ---------------------------------------------
+
 --- The mathematical constant Pi
 local PI <const> = math.pi
 --- Pi divided by 3
@@ -16,16 +17,29 @@ local PI_3 <const> = PI / 3
 local MAX_VELOCITY <const> = 3.0
 --- Gravity constant
 local GRAVITY <const> = 0.05
---- Graphics library for drawing
+--- Length of the tractor beam
+local TRACTOR_LENGTH <const> = 50.0
+
+---------------------------------------------
+--------------- Global State ----------------
+---------------------------------------------
+
+------ Graphics library for drawing
 local gfx <const> = playdate.graphics
 --- Particles table to hold all particle objects
 local particles <const> = {}
+--- Items table to hold all item objects
+local items <const> = { { x = 100, y = 100 } }
 --- Jetpod object representing the player's ship
 local jetpod <const> = {
     position = vector(200, 120), -- Starting position in the center of the screen
     velocity = vector(),
     heading = 0,
     isThrusting = false,
+    tractorBeam = {
+        isActive = false,
+        target = nil, -- The item being targeted by the tractor beam
+    },
 }
 
 ---------------------------------------------
@@ -79,12 +93,6 @@ local function updateJetpod()
     -- Update the position of the jetpod
     jetpod.position = addvector(jetpod.position, jetpod.velocity)
 
-    -- Keep the jetpod within screen bounds
-    if jetpod.position.x < 0 then jetpod.position.x = 0 end
-    if jetpod.position.x > 400 then jetpod.position.x = 400 end
-    if jetpod.position.y < 0 then jetpod.position.y = 0 end
-    if jetpod.position.y > 240 then jetpod.position.y = 240 end
-
     -- Create particles for thrust
     if jetpod.isThrusting then
         local particleCount = 1
@@ -97,6 +105,34 @@ local function updateJetpod()
     end
 end
 
+local function activateTractorBeam()
+    if jetpod.tractorBeam.isActive then
+        return -- If the tractor beam is already active, do nothing
+    end
+
+    -- Activate the tractor beam and find the nearest item
+    local nearestItem = nil
+    local nearestDistance = TRACTOR_LENGTH
+
+    for itemIndex, item in ipairs(items) do
+        local distance = vectorLength(subvector(jetpod.position, vector(item.x, item.y)))
+        if distance < nearestDistance then
+            nearestDistance = distance
+            nearestItem = itemIndex
+        end
+    end
+
+    if nearestItem then
+        jetpod.tractorBeam.isActive = true
+        jetpod.tractorBeam.target = nearestItem
+    end
+end
+
+local function deactivateTractorBeam()
+    jetpod.tractorBeam.isActive = false
+    jetpod.tractorBeam.target = nil
+end
+
 ---------------------------------------------
 ----------------- Drawing -------------------
 ---------------------------------------------
@@ -106,6 +142,14 @@ local function drawParticles()
     gfx.setColor(gfx.kColorWhite)
     for _, particle in ipairs(particles) do
         gfx.fillCircleAtPoint(particle.position.x, particle.position.y, 2)
+    end
+end
+
+--- Draws all items on the screen.
+local function drawItems()
+    gfx.setColor(gfx.kColorWhite)
+    for _, item in ipairs(items) do
+        gfx.fillRect(item.x - 5, item.y - 5, 10, 10)
     end
 end
 
@@ -124,6 +168,14 @@ local function drawJetpod()
     local x3 = x + size * math.cos(angle - PI * 2 / 3)
     local y3 = y + size * math.sin(angle - PI * 2 / 3)
     gfx.fillTriangle(x1, y1, x2, y2, x3, y3)
+    -- Draw the tractor beam if active
+    if jetpod.tractorBeam.isActive and jetpod.tractorBeam.target then
+        local targetItem = items[jetpod.tractorBeam.target]
+        if targetItem then
+            gfx.setColor(gfx.kColorWhite)
+            gfx.drawLine(x, y, targetItem.x, targetItem.y)
+        end
+    end
 end
 
 ---------------------------------------------
@@ -132,11 +184,16 @@ end
 
 --- Handles user input for controlling the game.
 local function handleInput()
-    jetpod.isThrusting = playdate.buttonIsPressed(playdate.kButtonUp)
+    jetpod.isThrusting = playdate.buttonIsPressed(playdate.kButtonA)
+
+    if playdate.buttonIsPressed(playdate.kButtonUp) then
+        activateTractorBeam()
+    end
 
     if playdate.buttonIsPressed(playdate.kButtonDown) then
-        -- TODO
+        deactivateTractorBeam()
     end
+
     if playdate.buttonIsPressed(playdate.kButtonLeft) then
         jetpod.heading = jetpod.heading - 0.1
     end
@@ -146,7 +203,7 @@ local function handleInput()
 end
 
 ---------------------------------------------
------------------ System --------------------
+---------------- Game Loop ------------------
 ---------------------------------------------
 
 --- Main update function called every frame.
@@ -161,5 +218,6 @@ function playdate.update()
     updateJetpod()
 
     drawParticles()
+    drawItems()
     drawJetpod()
 end
