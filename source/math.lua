@@ -4,8 +4,8 @@
 
 --- Creates a vector with x and y components.
 --- If no components are provided, defaults to (0, 0).
---- @param x number (optional) The x-component of the vector
---- @param y number (optional) The y-component of the vector
+--- @number[opt] x The x-component of the vector
+--- @number[optchain] y The y-component of the vector
 --- @return table A vector table with x and y components
 function vector(x, y)
     return { x = x or 0, y = y or 0 }
