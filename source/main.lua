@@ -29,11 +29,11 @@ local gfx <const> = playdate.graphics
 --- Particles table to hold all particle objects
 local particles <const> = {}
 --- Items table to hold all item objects
-local items <const> = { { x = 100, y = 100 } }
+local items <const> = { { position = playdate.geometry.vector2D.new(100, 100) } }
 --- Jetpod object representing the player's ship
 local jetpod <const> = {
-    position = vector(0, 0),
-    velocity = vector(),
+    position = playdate.geometry.vector2D.new(0, 0),
+    velocity = playdate.geometry.vector2D.new(0, 0),
     heading = 0,
     isThrusting = false,
     tractorBeam = {
@@ -41,6 +41,16 @@ local jetpod <const> = {
         target = nil, -- The item being targeted by the tractor beam
     },
 }
+
+---------------------------------------------
+----------------- Entities ------------------
+---------------------------------------------
+
+local function createEntity(x, y)
+    return {
+        position = playdate.geometry.vector2D.new(x, y),
+    }
+end
 
 ---------------------------------------------
 ---------- Updating the Game State ----------
@@ -55,7 +65,7 @@ local function updateParticles()
             table.remove(particles, i)
         else
             -- Update the particle's position based on its velocity
-            particle.position = addvector(particle.position, particle.velocity)
+            particle.position:addVector(particle.velocity)
             particle.lifetime = particle.lifetime - 1
         end
     end
@@ -69,29 +79,53 @@ end
 --- @param vy number (optional) The y-component of the particle's velocity
 local function makeParticle(x, y, vx, vy)
     local particle = {
-        position = vector(x, y),
-        velocity = vector(vx or 0, vy or 0),
+        position = playdate.geometry.vector2D.new(x, y),
+        velocity = playdate.geometry.vector2D.new(vx or 0, vy or 0),
         lifetime = 20 + math.random(7), -- Lifetime in frames
     }
     particles[#particles + 1] = particle
 end
 
+local function updateTractorBeam()
+    if not jetpod.tractorBeam.isActive then
+        return
+    end
+    local item = items[jetpod.tractorBeam.target]
+    local delta = jetpod.position - item.position
+    local distance = delta:magnitude()
+    local restLength = TRACTOR_LENGTH
+    if distance == 0 then
+        return -- No need to update if the distance is zero
+    end
+    local direction = delta:normalized()
+    local correction = direction * (distance - restLength)
+    -- Calculate correction ratio based on masses
+    local jetpodMass = 1 -- Assuming equal mass for simplicity
+    local itemMass = 1   -- Assuming equal mass for simplicity
+    local totalMass = jetpodMass + itemMass
+    local jetpodRatio = jetpodMass / totalMass
+    local itemRatio = itemMass / totalMass
+    -- Correct positions
+    jetpod.position:addVector(correction * jetpodRatio)
+    item.position = item.position - (correction * itemRatio)
+end
+
 --- Updates the jetpod's position and velocity based on its thrust and heading.
 local function updateJetpod()
     -- Compute acceleration based on thrust and heading
-    local acceleration = vector(0, GRAVITY) -- Gravity always acts downwards
+    local acceleration = playdate.geometry.vector2D.new(0, GRAVITY) -- Gravity always acts downwards
     local angle = jetpod.heading
 
     if jetpod.isThrusting then
-        acceleration = vector(math.cos(angle) * 0.1, math.sin(angle) * 0.1)
+        acceleration = playdate.geometry.vector2D.new(math.cos(angle) * 0.1, math.sin(angle) * 0.1)
     end
 
     -- Move the jetpod based on its acceleration and velocity
-    jetpod.velocity = addvector(jetpod.velocity, acceleration)
+    jetpod.velocity:addVector(acceleration)
     -- Clamp the velocity to the maximum allowed
     jetpod.velocity = clampvector(jetpod.velocity, -MAX_VELOCITY, MAX_VELOCITY)
     -- Update the position of the jetpod
-    jetpod.position = addvector(jetpod.position, jetpod.velocity)
+    jetpod.position:addVector(jetpod.velocity)
 
     -- Create particles for thrust
     if jetpod.isThrusting then
@@ -115,7 +149,7 @@ local function activateTractorBeam()
     local nearestDistance = TRACTOR_LENGTH
 
     for itemIndex, item in ipairs(items) do
-        local distance = vectorLength(subvector(jetpod.position, vector(item.x, item.y)))
+        local distance = (jetpod.position - item.position):magnitude()
         if distance < nearestDistance then
             nearestDistance = distance
             nearestItem = itemIndex
@@ -149,7 +183,7 @@ end
 local function drawItems()
     gfx.setColor(gfx.kColorWhite)
     for _, item in ipairs(items) do
-        gfx.fillRect(item.x - 5, item.y - 5, 10, 10)
+        gfx.fillRect(item.position.x - 5, item.position.y - 5, 10, 10)
     end
 end
 
@@ -173,7 +207,7 @@ local function drawJetpod()
         local targetItem = items[jetpod.tractorBeam.target]
         if targetItem then
             gfx.setColor(gfx.kColorWhite)
-            gfx.drawLine(x, y, targetItem.x, targetItem.y)
+            gfx.drawLine(x, y, targetItem.position.x, targetItem.position.y)
         end
     end
 end
@@ -217,6 +251,7 @@ function playdate.update()
 
     updateParticles()
     updateJetpod()
+    updateTractorBeam()
 
     -- Center the view on the jetpod
     gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
