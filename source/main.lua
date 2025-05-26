@@ -16,7 +16,7 @@ local PI_3 <const> = PI / 3
 --- Maximum velocity for the jetpod
 local MAX_VELOCITY <const> = 3.0
 --- Gravity constant
-local GRAVITY <const> = 0.05
+local GRAVITY <const> = 0 --0.05
 --- Length of the tractor beam
 local TRACTOR_LENGTH <const> = 50.0
 
@@ -32,7 +32,7 @@ local particles <const> = {}
 local items <const> = { { x = 100, y = 100 } }
 --- Jetpod object representing the player's ship
 local jetpod <const> = {
-    position = vector(200, 120), -- Starting position in the center of the screen
+    position = vector(0, 0),
     velocity = vector(),
     heading = 0,
     isThrusting = false,
@@ -209,6 +209,7 @@ end
 --- Main update function called every frame.
 function playdate.update()
     gfx.clear(gfx.kColorBlack)
+
     gfx.sprite.update()
     playdate.timer.updateTimers()
 
@@ -216,6 +217,9 @@ function playdate.update()
 
     updateParticles()
     updateJetpod()
+
+    -- Center the view on the jetpod
+    gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
 
     drawParticles()
     drawItems()
