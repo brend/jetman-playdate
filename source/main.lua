@@ -21,6 +21,22 @@ local GRAVITY <const> = 0 --0.05
 local TRACTOR_LENGTH <const> = 50.0
 
 ---------------------------------------------
+----------------- Entities ------------------
+---------------------------------------------
+
+local function createEntity(x, y, attributes)
+    local entity = {
+        position = playdate.geometry.vector2D.new(x, y),
+    }
+    if attributes then
+        for k, v in pairs(attributes) do
+            entity[k] = v
+        end
+    end
+    return entity
+end
+
+---------------------------------------------
 --------------- Global State ----------------
 ---------------------------------------------
 
@@ -29,28 +45,17 @@ local gfx <const> = playdate.graphics
 --- Particles table to hold all particle objects
 local particles <const> = {}
 --- Items table to hold all item objects
-local items <const> = { { position = playdate.geometry.vector2D.new(100, 100) } }
+local items <const> = { createEntity(100, 100) }
 --- Jetpod object representing the player's ship
-local jetpod <const> = {
-    position = playdate.geometry.vector2D.new(0, 0),
+local jetpod <const> = createEntity(0, 0, {
     velocity = playdate.geometry.vector2D.new(0, 0),
     heading = 0,
     isThrusting = false,
     tractorBeam = {
         isActive = false,
         target = nil, -- The item being targeted by the tractor beam
-    },
-}
-
----------------------------------------------
------------------ Entities ------------------
----------------------------------------------
-
-local function createEntity(x, y)
-    return {
-        position = playdate.geometry.vector2D.new(x, y),
     }
-end
+})
 
 ---------------------------------------------
 ---------- Updating the Game State ----------
@@ -78,11 +83,10 @@ end
 --- @param vx number (optional) The x-component of the particle's velocity
 --- @param vy number (optional) The y-component of the particle's velocity
 local function makeParticle(x, y, vx, vy)
-    local particle = {
-        position = playdate.geometry.vector2D.new(x, y),
+    local particle = createEntity(x, y, {
         velocity = playdate.geometry.vector2D.new(vx or 0, vy or 0),
         lifetime = 20 + math.random(7), -- Lifetime in frames
-    }
+    })
     particles[#particles + 1] = particle
 end
 
@@ -254,7 +258,7 @@ function playdate.update()
     updateTractorBeam()
 
     -- Center the view on the jetpod
-    gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
+    --gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
 
     drawParticles()
     drawItems()
