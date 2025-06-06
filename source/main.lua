@@ -27,6 +27,8 @@ local TRACTOR_LENGTH <const> = 50.0
 local function createEntity(x, y, attributes)
     local entity = {
         position = playdate.geometry.vector2D.new(x, y),
+        velocity = playdate.geometry.vector2D.new(0, 0),
+        mass = 1, -- Default mass
     }
     if attributes then
         for k, v in pairs(attributes) do
@@ -90,28 +92,50 @@ local function makeParticle(x, y, vx, vy)
     particles[#particles + 1] = particle
 end
 
-local function updateTractorBeam()
+local function updateTractorBeam(deltaTime)
+    deltaTime = deltaTime or (1 / 30) -- Default to 30 FPS if deltaTime is not provided
+
     if not jetpod.tractorBeam.isActive then
         return
     end
+
     local item = items[jetpod.tractorBeam.target]
     local delta = jetpod.position - item.position
     local distance = delta:magnitude()
     local restLength = TRACTOR_LENGTH
-    if distance == 0 then
-        return -- No need to update if the distance is zero
+
+    if distance < 0.01 then -- Small threshold instead of exact zero
+        return
     end
+
     local direction = delta:normalized()
-    local correction = direction * (distance - restLength)
-    -- Calculate correction ratio based on masses
-    local jetpodMass = 1 -- Assuming equal mass for simplicity
-    local itemMass = 1   -- Assuming equal mass for simplicity
+    local displacement = distance - restLength
+
+    -- Calculate spring force (Hooke's law)
+    local springConstant = 50 -- Adjust for desired strength
+    local dampingFactor = 0.8 -- Adjust for desired damping
+    local force = displacement * springConstant
+
+    -- Calculate masses and ratios
+    local jetpodMass = jetpod.mass or 1
+    local itemMass = item.mass or 1
     local totalMass = jetpodMass + itemMass
-    local jetpodRatio = jetpodMass / totalMass
-    local itemRatio = itemMass / totalMass
-    -- Correct positions
-    jetpod.position:addVector(correction * jetpodRatio)
-    item.position = item.position - (correction * itemRatio)
+
+    -- Apply forces (F = ma, so a = F/m)
+    local jetpodAccel = (force / jetpodMass) * (itemMass / totalMass)
+    local itemAccel = (force / itemMass) * (jetpodMass / totalMass)
+
+    -- Update velocities with damping
+    jetpod.velocity = jetpod.velocity - direction * jetpodAccel * deltaTime
+    item.velocity = item.velocity + direction * itemAccel * deltaTime
+
+    -- Apply damping to prevent oscillation
+    jetpod.velocity = jetpod.velocity * dampingFactor
+    item.velocity = item.velocity * dampingFactor
+
+    -- Update positions based on velocity
+    jetpod.position = jetpod.position + jetpod.velocity * deltaTime
+    item.position = item.position + item.velocity * deltaTime
 end
 
 --- Updates the jetpod's position and velocity based on its thrust and heading.
