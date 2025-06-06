@@ -16,7 +16,7 @@ local PI_3 <const> = PI / 3
 --- Maximum velocity for the jetpod
 local MAX_VELOCITY <const> = 3.0
 --- Gravity constant
-local GRAVITY <const> = 0 --0.05
+local GRAVITY <const> = 0.05
 --- Length of the tractor beam
 local TRACTOR_LENGTH <const> = 50.0
 
@@ -201,10 +201,10 @@ local function drawJetpod()
     local y = jetpod.position.y
     local x1 = x + size * math.cos(angle)
     local y1 = y + size * math.sin(angle)
-    local x2 = x + size * math.cos(angle + PI * 2 / 3)
-    local y2 = y + size * math.sin(angle + PI * 2 / 3)
-    local x3 = x + size * math.cos(angle - PI * 2 / 3)
-    local y3 = y + size * math.sin(angle - PI * 2 / 3)
+    local x2 = x + size * math.cos(angle + PI * 5 / 7)
+    local y2 = y + size * math.sin(angle + PI * 5 / 7)
+    local x3 = x + size * math.cos(angle - PI * 5 / 7)
+    local y3 = y + size * math.sin(angle - PI * 5 / 7)
     gfx.fillTriangle(x1, y1, x2, y2, x3, y3)
     -- Draw the tractor beam if active
     if jetpod.tractorBeam.isActive and jetpod.tractorBeam.target then
