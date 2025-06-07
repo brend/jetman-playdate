@@ -60,6 +60,54 @@ local jetpod <const> = createEntity(0, 0, {
 })
 
 ---------------------------------------------
+----------------- Terrain -------------------
+---------------------------------------------
+
+local terrainSegments = {
+    { x1 = 0,   y1 = 180, x2 = 100, y2 = 180 },
+    { x1 = 100, y1 = 180, x2 = 200, y2 = 160 },
+    { x1 = 200, y1 = 160, x2 = 400, y2 = 160 },
+}
+
+local function pointToSegmentDistance(px, py, x1, y1, x2, y2)
+    local A = px - x1
+    local B = py - y1
+    local C = x2 - x1
+    local D = y2 - y1
+
+    local dot = A * C + B * D
+    local lenSq = C * C + D * D
+    local param = dot / lenSq
+
+    local xx, yy
+    if param < 0 then
+        xx, yy = x1, y1
+    elseif param > 1 then
+        xx, yy = x2, y2
+    else
+        xx = x1 + param * C
+        yy = y1 + param * D
+    end
+
+    local dx = px - xx
+    local dy = py - yy
+    return math.sqrt(dx * dx + dy * dy)
+end
+
+local function checkJetpodCollision()
+    for _, seg in ipairs(terrainSegments) do
+        local dist = pointToSegmentDistance(
+            jetpod.position.x, jetpod.position.y,
+            seg.x1, seg.y1, seg.x2, seg.y2
+        )
+        if dist < 5 then -- adjust for radius of jetpod
+            return true
+        end
+    end
+    return false
+end
+
+---------------------------------------------
 ---------- Updating the Game State ----------
 ---------------------------------------------
 
@@ -137,6 +185,12 @@ local function updateJetpod()
     jetpod.velocity = clampvector(jetpod.velocity, -MAX_VELOCITY, MAX_VELOCITY)
     -- Update the position of the jetpod
     jetpod.position:addVector(jetpod.velocity)
+
+    -- Collision detection with terrain
+    if checkJetpodCollision() then
+        -- Handle collision: stop movement or trigger explosion
+        jetpod.velocity = playdate.geometry.vector2D.new(0, 0)
+    end
 
     -- Create particles for thrust
     if jetpod.isThrusting then
@@ -223,6 +277,13 @@ local function drawJetpod()
     end
 end
 
+local function drawTerrain()
+    gfx.setColor(gfx.kColorWhite)
+    for _, seg in ipairs(terrainSegments) do
+        gfx.drawLine(seg.x1, seg.y1, seg.x2, seg.y2)
+    end
+end
+
 ---------------------------------------------
 ------------- Handling Input ----------------
 ---------------------------------------------
@@ -267,6 +328,7 @@ function playdate.update()
     -- Center the view on the jetpod
     --gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
 
+    drawTerrain()
     drawParticles()
     drawItems()
     drawJetpod()
