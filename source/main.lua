@@ -93,7 +93,7 @@ local function makeParticle(x, y, vx, vy)
 end
 
 local function updateTractorBeam(deltaTime)
-    deltaTime = deltaTime or (1 / 30) -- Default to 30 FPS if deltaTime is not provided
+    deltaTime = deltaTime or (1 / 30)
 
     if not jetpod.tractorBeam.isActive then
         return
@@ -104,38 +104,21 @@ local function updateTractorBeam(deltaTime)
     local distance = delta:magnitude()
     local restLength = TRACTOR_LENGTH
 
-    if distance < 0.01 then -- Small threshold instead of exact zero
+    if distance < 0.01 then
         return
     end
 
     local direction = delta:normalized()
-    local displacement = distance - restLength
 
-    -- Calculate spring force (Hooke's law)
-    local springConstant = 50 -- Adjust for desired strength
-    local dampingFactor = 0.8 -- Adjust for desired damping
-    local force = displacement * springConstant
+    -- Desired position for the item, keeping it at TRACTOR_LENGTH from the jetpod
+    local targetPosition = jetpod.position - direction * restLength
 
-    -- Calculate masses and ratios
-    local jetpodMass = jetpod.mass or 1
-    local itemMass = item.mass or 1
-    local totalMass = jetpodMass + itemMass
+    -- Move item toward target position with fixed speed
+    local pullSpeed = 100 -- Units per second
+    local moveVector = targetPosition - item.position
+    local moveDistance = math.min(moveVector:magnitude(), pullSpeed * deltaTime)
 
-    -- Apply forces (F = ma, so a = F/m)
-    local jetpodAccel = (force / jetpodMass) * (itemMass / totalMass)
-    local itemAccel = (force / itemMass) * (jetpodMass / totalMass)
-
-    -- Update velocities with damping
-    jetpod.velocity = jetpod.velocity - direction * jetpodAccel * deltaTime
-    item.velocity = item.velocity + direction * itemAccel * deltaTime
-
-    -- Apply damping to prevent oscillation
-    jetpod.velocity = jetpod.velocity * dampingFactor
-    item.velocity = item.velocity * dampingFactor
-
-    -- Update positions based on velocity
-    jetpod.position = jetpod.position + jetpod.velocity * deltaTime
-    item.position = item.position + item.velocity * deltaTime
+    item.position = item.position + moveVector:normalized() * moveDistance
 end
 
 --- Updates the jetpod's position and velocity based on its thrust and heading.
