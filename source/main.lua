@@ -21,6 +21,32 @@ local GRAVITY <const> = 0.05
 local TRACTOR_LENGTH <const> = 50.0
 
 ---------------------------------------------
+----------------- Sound ---------------------
+---------------------------------------------
+
+local snd <const> = playdate.sound
+local thrusterSynth = snd.synth.new(snd.kWaveNoise)
+local thrusterChannel = snd.channel.new()
+local isPlayingThruster = false
+
+-- Configure the thruster sound to be hoarse and gravelly like Solar Jetman
+thrusterSynth:setADSR(0.01, 0.1, 0.8, 0.2) -- Quick attack, short decay, high sustain, short release
+thrusterSynth:setVolume(0.3)
+thrusterChannel:addSource(thrusterSynth)
+
+-- Low-pass filter to make it more muffled and gravelly
+local thrusterFilter = snd.twopolefilter.new(snd.kFilterLowPass)
+thrusterFilter:setFrequency(800) -- Cut off higher frequencies for gravel effect
+thrusterFilter:setResonance(0.3)
+thrusterChannel:addEffect(thrusterFilter)
+
+-- Add some distortion for the hoarse quality
+local thrusterDistortion = snd.bitcrusher.new()
+thrusterDistortion:setAmount(0.4)        -- Moderate bit crushing
+thrusterDistortion:setUndersampling(0.2) -- Slight undersampling
+thrusterChannel:addEffect(thrusterDistortion)
+
+---------------------------------------------
 ----------------- Entities ------------------
 ---------------------------------------------
 
@@ -199,6 +225,24 @@ local function updateJetpod()
 
     if jetpod.isThrusting then
         acceleration = playdate.geometry.vector2D.new(math.cos(angle) * 0.1, math.sin(angle) * 0.1)
+
+        -- Start thruster sound if not already playing
+        if not isPlayingThruster then
+            -- Play a low-pitched noise with slight frequency modulation for gravel effect
+            local baseFreq = 80 + math.random(20) -- Random base frequency between 80-100 Hz
+            thrusterSynth:playNote(baseFreq, 1.0) -- Play indefinitely
+            isPlayingThruster = true
+        end
+
+        -- Add slight frequency modulation for realistic engine sound
+        local freqMod = 80 + math.random(30) -- Vary frequency slightly
+        thrusterSynth:setFrequencyMod(freqMod)
+    else
+        -- Stop thruster sound when not thrusting
+        if isPlayingThruster then
+            thrusterSynth:noteOff()
+            isPlayingThruster = false
+        end
     end
 
     -- Move the jetpod based on its acceleration and velocity
