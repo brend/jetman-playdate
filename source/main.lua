@@ -153,10 +153,11 @@ end
 --- @param y number The y-coordinate of the particle's position
 --- @param vx number (optional) The x-component of the particle's velocity
 --- @param vy number (optional) The y-component of the particle's velocity
-local function makeParticle(x, y, vx, vy)
+local function makeParticle(x, y, vx, vy, size)
     local particle = createEntity(x, y, {
         velocity = playdate.geometry.vector2D.new(vx or 0, vy or 0),
         lifetime = 20 + math.random(7), -- Lifetime in frames
+        size = size or 2,               -- Size of the particle
     })
     particles[#particles + 1] = particle
 end
@@ -213,6 +214,13 @@ local function updateJetpod()
         reflectVelocity(jetpod.velocity, hitSegment.x1, hitSegment.y1, hitSegment.x2, hitSegment.y2)
         -- Slightly push jetpod away to avoid sticking
         jetpod.position:addVector(jetpod.velocity)
+        -- Visually indicate the collision
+        for i = 1, 5 do
+            -- Create a particle at the collision point
+            local v = randomvector()
+            local size = math.random(2, 4)
+            makeParticle(jetpod.position.x, jetpod.position.y, v.x, v.y, size)
+        end
     end
 
     -- Create particles for thrust
@@ -222,7 +230,7 @@ local function updateJetpod()
             local angleOffset = PI_3 - math.random() * 2 * PI_3 -- Random angle offset for variation
             local vx = -math.cos(jetpod.heading + angleOffset) * 2
             local vy = -math.sin(jetpod.heading + angleOffset) * 2
-            makeParticle(jetpod.position.x, jetpod.position.y, vx, vy)
+            makeParticle(jetpod.position.x, jetpod.position.y, vx, vy, 1)
         end
     end
 end
@@ -263,7 +271,7 @@ end
 local function drawParticles()
     gfx.setColor(gfx.kColorWhite)
     for _, particle in ipairs(particles) do
-        gfx.fillCircleAtPoint(particle.position.x, particle.position.y, 2)
+        gfx.fillCircleAtPoint(particle.position.x, particle.position.y, particle.size)
     end
 end
 

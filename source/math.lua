@@ -18,6 +18,13 @@ function clampvector(v, min, max)
     end
 end
 
+--- Generates a unit vector pointing in a random direction.
+--- @return table A vector with x and y components set to a random direction
+function randomvector()
+    local angle = math.random() * 2 * math.pi
+    return { x = math.cos(angle), y = math.sin(angle) }
+end
+
 --- Checks if a vector is within the screen bounds.
 --- @param v table The vector to check
 --- @return boolean True if the vector is within the screen bounds, false otherwise
