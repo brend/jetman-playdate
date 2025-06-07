@@ -100,11 +100,32 @@ local function checkJetpodCollision()
             jetpod.position.x, jetpod.position.y,
             seg.x1, seg.y1, seg.x2, seg.y2
         )
-        if dist < 5 then -- adjust for radius of jetpod
-            return true
+        if dist < 5 then -- radius for collision
+            return seg
         end
     end
-    return false
+    return nil
+end
+
+local function reflectVelocity(velocity, x1, y1, x2, y2)
+    -- Compute segment direction
+    local dx, dy = x2 - x1, y2 - y1
+    local length = math.sqrt(dx * dx + dy * dy)
+    dx, dy = dx / length, dy / length
+
+    -- Compute normal (perpendicular to segment)
+    local nx, ny = -dy, dx
+
+    -- Dot product of velocity and normal
+    local dot = velocity.dx * nx + velocity.dy * ny
+
+    -- Reflect: v - 2*(v·n)*n
+    velocity.dx = velocity.dx - 2 * dot * nx
+    velocity.dy = velocity.dy - 2 * dot * ny
+
+    -- Dampen to reduce energy
+    velocity.dx = velocity.dx * 0.6
+    velocity.dy = velocity.dy * 0.6
 end
 
 ---------------------------------------------
@@ -187,9 +208,11 @@ local function updateJetpod()
     jetpod.position:addVector(jetpod.velocity)
 
     -- Collision detection with terrain
-    if checkJetpodCollision() then
-        -- Handle collision: stop movement or trigger explosion
-        jetpod.velocity = playdate.geometry.vector2D.new(0, 0)
+    local hitSegment = checkJetpodCollision()
+    if hitSegment then
+        reflectVelocity(jetpod.velocity, hitSegment.x1, hitSegment.y1, hitSegment.x2, hitSegment.y2)
+        -- Slightly push jetpod away to avoid sticking
+        jetpod.position:addVector(jetpod.velocity)
     end
 
     -- Create particles for thrust
