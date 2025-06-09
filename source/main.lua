@@ -86,7 +86,11 @@ local jetpod <const> = createEntity(0, 0, {
     tractorBeam = {
         isActive = false,
         target = nil, -- The item being targeted by the tractor beam
-    }
+    },
+    maxHealth = 100,
+    health = 100,
+    maxFuel = 100,
+    fuel = 100,
 })
 
 ---------------------------------------------
@@ -227,7 +231,7 @@ local function updateJetpod()
     local acceleration = playdate.geometry.vector2D.new(0, GRAVITY) -- Gravity always acts downwards
     local angle = jetpod.heading
 
-    if jetpod.isThrusting then
+    if jetpod.isThrusting and jetpod.fuel > 0 then
         acceleration = playdate.geometry.vector2D.new(math.cos(angle) * 0.1, math.sin(angle) * 0.1)
 
         -- Start thruster sound if not already playing
@@ -236,6 +240,12 @@ local function updateJetpod()
             local baseFreq = 80 + math.random(20) -- Random base frequency between 80-100 Hz
             thrusterSynth:playNote(baseFreq, 1.0) -- Play indefinitely
             isPlayingThruster = true
+        end
+
+        -- Decrease fuel
+        jetpod.fuel = jetpod.fuel - 0.1
+        if jetpod.fuel < 0 then
+            jetpod.fuel = 0 -- Prevent negative fuel
         end
 
         -- Add slight frequency modulation for realistic engine sound
@@ -326,6 +336,9 @@ end
 ----------------- Drawing -------------------
 ---------------------------------------------
 
+local fuelIcon = gfx.image.new("images/fuelIcon")
+local energyIcon = gfx.image.new("images/energyIcon")
+
 --- Draws all particles on the screen.
 local function drawParticles()
     gfx.setColor(gfx.kColorWhite)
@@ -374,6 +387,26 @@ local function drawTerrain()
     end
 end
 
+local function drawHud()
+    -- draw fuel gauge as a horizontal bar
+    fuelIcon:draw(0, 10)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(10, 10, 100, 10)
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(11, 11, 98, 8)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(12, 12, 96 * (jetpod.fuel / jetpod.maxFuel), 6)
+
+    -- draw energy gauge as a horizontal bar
+    energyIcon:draw(0, 30)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(10, 30, 100, 10)
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(11, 31, 98, 8)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(12, 32, 96 * (jetpod.health / jetpod.maxHealth), 6)
+end
+
 ---------------------------------------------
 ------------- Handling Input ----------------
 ---------------------------------------------
@@ -417,9 +450,10 @@ function playdate.update()
 
     -- Center the view on the jetpod
     gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
-
     drawTerrain()
     drawParticles()
     drawItems()
     drawJetpod()
+    gfx.setDrawOffset(0, 0)
+    drawHud();
 end
