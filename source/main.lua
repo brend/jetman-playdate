@@ -262,6 +262,10 @@ local function updateJetpod()
         reflectVelocity(jetpod.velocity, hitSegment.x1, hitSegment.y1, hitSegment.x2, hitSegment.y2)
         -- Slightly push jetpod away to avoid sticking
         jetpod.position:addVector(jetpod.velocity)
+        -- Play a dull, ringing sound on collision
+        local collisionSound = snd.synth.new(snd.kWaveTriangle)
+        collisionSound:setADSR(0.01, 0.1, 0.3, 0.5)
+        collisionSound:playNote(60, 0.4, 0.7)
         -- Visually indicate the collision
         for i = 1, 5 do
             -- Create a particle at the collision point
@@ -412,7 +416,7 @@ function playdate.update()
     updateTractorBeam()
 
     -- Center the view on the jetpod
-    --gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
+    gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
 
     drawTerrain()
     drawParticles()
