@@ -46,6 +46,10 @@ thrusterDistortion:setAmount(0.4)        -- Moderate bit crushing
 thrusterDistortion:setUndersampling(0.2) -- Slight undersampling
 thrusterChannel:addEffect(thrusterDistortion)
 
+-- Sound effect for the tractor beam
+local beamSound = snd.synth.new(snd.kWaveSquare)
+beamSound:setADSR(0.005, 0.02, 0.2, 0.05)
+
 ---------------------------------------------
 ----------------- Entities ------------------
 ---------------------------------------------
@@ -300,11 +304,18 @@ local function activateTractorBeam()
         jetpod.tractorBeam.isActive = true
         jetpod.tractorBeam.target = nearestItem
     end
+
+    if jetpod.tractorBeam.isActive then
+        -- Play a sharper, higher-pitched sound effect for the tractor beam activation
+        beamSound:playNote(350, 0.6, 0.1)
+    end
 end
 
 local function deactivateTractorBeam()
     jetpod.tractorBeam.isActive = false
     jetpod.tractorBeam.target = nil
+    -- Stop the tractor beam sound
+    beamSound:noteOff()
 end
 
 ---------------------------------------------
