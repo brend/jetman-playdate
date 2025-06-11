@@ -338,6 +338,7 @@ end
 
 local fuelIcon = gfx.image.new("images/fuelIcon")
 local energyIcon = gfx.image.new("images/energyIcon")
+local chestSprite = gfx.image.new("images/chest")
 
 --- Draws all particles on the screen.
 local function drawParticles()
@@ -351,7 +352,8 @@ end
 local function drawItems()
     gfx.setColor(gfx.kColorWhite)
     for _, item in ipairs(items) do
-        gfx.fillRect(item.position.x - 5, item.position.y - 5, 10, 10)
+        --gfx.fillRect(item.position.x - 5, item.position.y - 5, 10, 10)
+        chestSprite:draw(item.position.x - 8, item.position.y - 8)
     end
 end
 
@@ -411,23 +413,47 @@ end
 ------------- Handling Input ----------------
 ---------------------------------------------
 
+local controlScheme = "CRANK_CONTROLS" -- or else "BUTTON_CONTROLS"
+
 --- Handles user input for controlling the game.
 local function handleInput()
-    jetpod.isThrusting = playdate.buttonIsPressed(playdate.kButtonA)
+    if controlScheme == "CRANK_CONTROLS" then
+        -- Use the crank to control the jetpod's heading
+        local change, acceleratedChange = playdate.getCrankChange()
+        if change ~= 0 then
+            jetpod.heading = jetpod.heading + acceleratedChange * 0.1
+        end
+        -- Use Up button for thrust
+        jetpod.isThrusting = playdate.buttonIsPressed(playdate.kButtonUp)
+        -- Use Down button to toggle tractor beam
+        if playdate.buttonIsPressed(playdate.kButtonDown) then
+            if jetpod.tractorBeam.isActive then
+                deactivateTractorBeam()
+            else
+                activateTractorBeam()
+            end
+        end
+    else
+        -- Use Left and Right buttons for controls
+        if playdate.buttonIsPressed(playdate.kButtonLeft) then
+            jetpod.heading = jetpod.heading - 0.1
+        end
 
-    if playdate.buttonIsPressed(playdate.kButtonUp) then
-        activateTractorBeam()
-    end
+        if playdate.buttonIsPressed(playdate.kButtonRight) then
+            jetpod.heading = jetpod.heading + 0.1
+        end
 
-    if playdate.buttonIsPressed(playdate.kButtonDown) then
-        deactivateTractorBeam()
-    end
+        -- Use A button for thrust
+        jetpod.isThrusting = playdate.buttonIsPressed(playdate.kButtonA)
 
-    if playdate.buttonIsPressed(playdate.kButtonLeft) then
-        jetpod.heading = jetpod.heading - 0.1
-    end
-    if playdate.buttonIsPressed(playdate.kButtonRight) then
-        jetpod.heading = jetpod.heading + 0.1
+        -- Use Up and Down buttons to toggle tractor beam
+        if playdate.buttonIsPressed(playdate.kButtonUp) then
+            activateTractorBeam()
+        end
+
+        if playdate.buttonIsPressed(playdate.kButtonDown) then
+            deactivateTractorBeam()
+        end
     end
 end
 
@@ -448,12 +474,13 @@ function playdate.update()
     updateJetpod()
     updateTractorBeam()
 
-    -- Center the view on the jetpod
+    -- Center the view on the jetpod and draw the game elements
     gfx.setDrawOffset(200 - jetpod.position.x, 120 - jetpod.position.y)
     drawTerrain()
     drawParticles()
     drawItems()
     drawJetpod()
+    -- Reset the draw offset to the top-left corner for the HUD
     gfx.setDrawOffset(0, 0)
     drawHud();
 end
